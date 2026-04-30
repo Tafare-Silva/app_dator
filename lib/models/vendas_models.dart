@@ -1,5 +1,4 @@
-// ── Vendedor ──────────────────────────────────────────────────────────────────
-
+// ── Vendedor ──────────────────────
 class Vendedor {
   final int pkChave;
   final String? nome;
@@ -92,6 +91,8 @@ class ItemVenda {
   final double vrTotalLiquido;
   final bool itemDevolvido;
   final double quantidadeDevolvida;
+  final int? vendedorId;
+  final String? vendedorNome;
 
   ItemVenda({
     required this.pkChave,
@@ -104,6 +105,8 @@ class ItemVenda {
     required this.vrTotalLiquido,
     required this.itemDevolvido,
     required this.quantidadeDevolvida,
+    this.vendedorId,
+    this.vendedorNome,
   });
 
   factory ItemVenda.fromJson(Map<String, dynamic> json) => ItemVenda(
@@ -117,6 +120,8 @@ class ItemVenda {
         vrTotalLiquido: double.parse(json['vr_total_liquido'].toString()),
         itemDevolvido: json['item_devolvido'] ?? false,
         quantidadeDevolvida: double.parse(json['quantidade_devolvida'].toString()),
+        vendedorId: json['vendedor_id'],
+        vendedorNome: json['vendedor_nome'],
       );
 }
 
@@ -206,6 +211,7 @@ class PreVenda {
         quantidadeItens: json['quantidade_itens'],
       );
 }
+
 // ── PreVendaDetalhe (Detalhe completo com itens) ───────────────────────────────
 /// Representa os detalhes COMPLETOS de uma pré-venda, incluindo seus itens
 class PreVendaDetalhe {
@@ -220,7 +226,7 @@ class PreVendaDetalhe {
   final DateTime? dataEntrega;
   final double vrTotal;
   final int quantidadeItens;
-  final List<ItemVenda> itens;  // ← Usa ItemVenda que já existe!
+  final List<ItemVenda> itens;
 
   PreVendaDetalhe({
     required this.pkChave,

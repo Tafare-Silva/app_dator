@@ -519,6 +519,7 @@ class _DetalheSheetState extends State<_DetalheSheet> {
 class _InfoRow extends StatelessWidget {
   final String label;
   final String valor;
+  
   const _InfoRow(this.label, this.valor);
 
   @override
@@ -548,9 +549,18 @@ class _InfoRow extends StatelessWidget {
 class _ItemRow extends StatelessWidget {
   final ItemVenda item;
   final NumberFormat fmt;
-  const _ItemRow({required this.item, required this.fmt});
+  final List<Vendedor> vendedores;  
+  final Function(int?) onVendedorChanged;
+
+  const _ItemRow
+  ({required this.item,
+   required this.fmt,
+   required this.vendedores,  
+   required this.onVendedorChanged,  
+   });
 
   @override
+  
   Widget build(BuildContext context) {
     final qtdStr = item.quantidade == item.quantidade.truncateToDouble()
         ? item.quantidade.toStringAsFixed(0)
