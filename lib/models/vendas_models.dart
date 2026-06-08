@@ -212,6 +212,68 @@ class PreVenda {
       );
 }
 
+// ── Input para criação de Pré-Venda ──────────────────────────────────────────
+
+class ItemPreVendaInput {
+  final int produtoId;
+  final double quantidade;
+  final double vrUnitarioBruto;
+  final double vrDescontoTotal;
+  final double vrAcrescimoTotal;
+  final int? vendedorId;
+
+  const ItemPreVendaInput({
+    required this.produtoId,
+    required this.quantidade,
+    required this.vrUnitarioBruto,
+    this.vrDescontoTotal = 0,
+    this.vrAcrescimoTotal = 0,
+    this.vendedorId,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'produto_id': produtoId,
+        'quantidade': quantidade,
+        'vr_unitario_bruto': vrUnitarioBruto,
+        'vr_desconto_total': vrDescontoTotal,
+        'vr_acrescimo_total': vrAcrescimoTotal,
+        if (vendedorId != null) 'vendedor_id': vendedorId,
+      };
+
+  double get vrTotalLiquido =>
+      quantidade * vrUnitarioBruto - vrDescontoTotal + vrAcrescimoTotal;
+}
+
+class PreVendaInput {
+  final int? clienteId;
+  final int? vendedorId;
+  final DateTime? data;
+  final String? condicaoPagamento;
+  final DateTime? dataEntrega;
+  final String? obs;
+  final List<ItemPreVendaInput> itens;
+
+  const PreVendaInput({
+    this.clienteId,
+    this.vendedorId,
+    this.data,
+    this.condicaoPagamento,
+    this.dataEntrega,
+    this.obs,
+    required this.itens,
+  });
+
+  Map<String, dynamic> toJson() => {
+        if (clienteId != null) 'cliente_id': clienteId,
+        if (vendedorId != null) 'vendedor_id': vendedorId,
+        if (data != null) 'data': '${data!.year.toString().padLeft(4, '0')}-${data!.month.toString().padLeft(2, '0')}-${data!.day.toString().padLeft(2, '0')}',
+        if (condicaoPagamento != null) 'condicao_pagamento': condicaoPagamento,
+        if (dataEntrega != null) 'data_entrega': '${dataEntrega!.year.toString().padLeft(4, '0')}-${dataEntrega!.month.toString().padLeft(2, '0')}-${dataEntrega!.day.toString().padLeft(2, '0')}',
+        if (obs != null) 'obs': obs,
+        'itens': itens.map((i) => i.toJson()).toList(),
+      };
+}
+
 // ── PreVendaDetalhe (Detalhe completo com itens) ───────────────────────────────
 /// Representa os detalhes COMPLETOS de uma pré-venda, incluindo seus itens
 class PreVendaDetalhe {

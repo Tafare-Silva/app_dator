@@ -14,6 +14,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   final _config = ConfigService();
   final _impressaoService = ImpressaoService();
 
+  final _nomeEmpresaCtrl = TextEditingController();
   final _servidorIpCtrl = TextEditingController();
   final _servidorPortaCtrl = TextEditingController();
   final _impressoraIpCtrl = TextEditingController();
@@ -29,6 +30,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   }
 
   Future<void> _carregar() async {
+    _nomeEmpresaCtrl.text = await _config.getNomeEmpresa();
     _servidorIpCtrl.text = await _config.getServidorIp();
     _servidorPortaCtrl.text = (await _config.getServidorPorta()).toString();
     _impressoraIpCtrl.text = await _config.getImpressoraIp();
@@ -39,6 +41,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
   Future<void> _salvar() async {
     setState(() => _salvando = true);
     await _config.salvar(
+      nomeEmpresa: _nomeEmpresaCtrl.text.trim(),
       servidorIp: _servidorIpCtrl.text.trim(),
       servidorPorta: int.tryParse(_servidorPortaCtrl.text.trim()),
       impressoraIp: _impressoraIpCtrl.text.trim(),
@@ -81,6 +84,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
 
   @override
   void dispose() {
+    _nomeEmpresaCtrl.dispose();
     _servidorIpCtrl.dispose();
     _servidorPortaCtrl.dispose();
     _impressoraIpCtrl.dispose();
@@ -96,6 +100,15 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          _Secao(titulo: '🏪 Empresa', children: [
+            _Campo(
+              controller: _nomeEmpresaCtrl,
+              label: 'Nome da Empresa (impresso no PDF)',
+              hint: 'Ex: PURO ESTILO ADULTO BANDEIRANTES',
+              teclado: TextInputType.text,
+            ),
+          ]),
+          const SizedBox(height: 24),
           _Secao(titulo: '🖥️ Servidor Backend', children: [
             _Campo(
               controller: _servidorIpCtrl,

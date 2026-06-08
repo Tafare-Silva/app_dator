@@ -7,7 +7,7 @@ import 'screens/login/login_screen.dart';
 import 'screens/mesas/mesas_screen.dart';
 import 'screens/vendas_home_screen.dart';
 
-const _gruposVendas = ['VENDEDORES', 'GERENTE', 'SUPERVISOR', 'ADMINISTRADORES'];
+const _gruposVendas = ['VENDEDORES', 'GERENTE', 'ADMINISTRADORES', 'CAIXA'];
 
 void main() {
   runApp(

@@ -158,4 +158,16 @@ class VendasService {
     final response = await _client.dio.get('/vendas/pre-vendas/$preVendaId');
     return PreVendaDetalhe.fromJson(response.data);
   }
+
+  Future<PreVenda> criarPreVenda(PreVendaInput dados) async {
+    final response = await _client.dio.post(
+      '/vendas/pre-vendas',
+      data: dados.toJson(),
+    );
+    if (response.statusCode != 201) {
+      final msg = response.data is Map ? (response.data['detail'] ?? 'Erro ao criar pré-venda') : 'Erro ao criar pré-venda';
+      throw Exception(msg.toString());
+    }
+    return PreVenda.fromJson(response.data);
+  }
 }

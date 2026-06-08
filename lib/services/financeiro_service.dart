@@ -1,0 +1,80 @@
+import 'package:intl/intl.dart';
+import '../models/financeiro_model.dart';
+import 'api_client.dart';
+
+final _dateFmt = DateFormat('yyyy-MM-dd');
+
+class FinanceiroService {
+  final _client = ApiClient();
+
+  Future<List<ContaPagar>> listarContasPagar({
+    DateTime? dataInicio,
+    DateTime? dataFim,
+    DateTime? dataBaixaInicio,
+    DateTime? dataBaixaFim,
+    int? pessoaId,
+    int? planoContasId,
+    int? centroCustosId,
+    String? situacao,
+    int limit = 500,
+    int offset = 0,
+  }) async {
+    final response = await _client.dio.get(
+      '/financeiro/contas-pagar',
+      queryParameters: {
+        if (dataInicio != null) 'data_inicio': _dateFmt.format(dataInicio),
+        if (dataFim != null) 'data_fim': _dateFmt.format(dataFim),
+        if (dataBaixaInicio != null) 'data_baixa_inicio': _dateFmt.format(dataBaixaInicio),
+        if (dataBaixaFim != null) 'data_baixa_fim': _dateFmt.format(dataBaixaFim),
+        if (pessoaId != null) 'pessoa_id': pessoaId,
+        if (planoContasId != null) 'plano_contas_id': planoContasId,
+        if (centroCustosId != null) 'centro_custos_id': centroCustosId,
+        if (situacao != null) 'situacao': situacao,
+        'limit': limit,
+        'offset': offset,
+      },
+    );
+    return (response.data as List).map((e) => ContaPagar.fromJson(e)).toList();
+  }
+
+  Future<ResumoContasPagar> getResumo({
+    DateTime? dataInicio,
+    DateTime? dataFim,
+    DateTime? dataBaixaInicio,
+    DateTime? dataBaixaFim,
+    int? pessoaId,
+    int? planoContasId,
+    int? centroCustosId,
+    String? situacao,
+  }) async {
+    final response = await _client.dio.get(
+      '/financeiro/contas-pagar/resumo',
+      queryParameters: {
+        if (dataInicio != null) 'data_inicio': _dateFmt.format(dataInicio),
+        if (dataFim != null) 'data_fim': _dateFmt.format(dataFim),
+        if (dataBaixaInicio != null) 'data_baixa_inicio': _dateFmt.format(dataBaixaInicio),
+        if (dataBaixaFim != null) 'data_baixa_fim': _dateFmt.format(dataBaixaFim),
+        if (pessoaId != null) 'pessoa_id': pessoaId,
+        if (planoContasId != null) 'plano_contas_id': planoContasId,
+        if (centroCustosId != null) 'centro_custos_id': centroCustosId,
+        if (situacao != null) 'situacao': situacao,
+      },
+    );
+    return ResumoContasPagar.fromJson(response.data);
+  }
+
+  Future<List<FiltroItem>> listarFornecedores() async {
+    final r = await _client.dio.get('/financeiro/fornecedores');
+    return (r.data as List).map((e) => FiltroItem.fromJson(e)).toList();
+  }
+
+  Future<List<FiltroItem>> listarPlanosContas() async {
+    final r = await _client.dio.get('/financeiro/planos-contas');
+    return (r.data as List).map((e) => FiltroItem.fromJson(e)).toList();
+  }
+
+  Future<List<FiltroItem>> listarCentrosCustos() async {
+    final r = await _client.dio.get('/financeiro/centros-custos');
+    return (r.data as List).map((e) => FiltroItem.fromJson(e)).toList();
+  }
+}

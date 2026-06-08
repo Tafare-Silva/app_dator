@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../models/vendas_models.dart';
-import '../../services/vendas_service.dart';
-// Ajuste os imports abaixo conforme seu projeto:
-// import '../../core/app_theme.dart';
-
-// Cole aqui o AppTheme do seu projeto ou ajuste o import:
-import '../../core/app_theme.dart';
+import '../../../models/vendas_models.dart';
+import '../../../services/vendas_service.dart';
+import '../../../core/app_theme.dart';
 
 class DashboardVendasScreen extends StatefulWidget {
-  const DashboardVendasScreen({super.key});
+  final VoidCallback? onAbrirMenu;
+  const DashboardVendasScreen({super.key, this.onAbrirMenu});
 
   @override
   State<DashboardVendasScreen> createState() => _DashboardVendasScreenState();
@@ -21,8 +18,12 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
   final _fmtData = DateFormat('dd/MM/yyyy');
 
   late Future<DashboardVendas> _futuroDashboard;
-  DateTime _dataInicio = DateTime(DateTime.now().year, DateTime.now().month, 1);
-  DateTime _dataFim = DateTime.now();
+
+  // ✅ Padrão: dia atual
+  DateTime _dataInicio = DateTime(
+      DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  DateTime _dataFim = DateTime(
+      DateTime.now().year, DateTime.now().month, DateTime.now().day);
 
   @override
   void initState() {
@@ -47,7 +48,8 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
       locale: const Locale('pt', 'BR'),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppTheme.primary),
+          colorScheme:
+              const ColorScheme.light(primary: AppTheme.primary),
         ),
         child: child!,
       ),
@@ -62,10 +64,15 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,  // Mantido para consistência (evita overflow no teclado)
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Dashboard de Vendas'),
+        title: const Text('Dashboard'),
+        // ✅ Botão menu hamburguer abre o Drawer
+        leading: IconButton(
+        icon: const Icon(Icons.menu),
+        onPressed: widget.onAbrirMenu, // ✅ usa o callback do pai
+      ),
         actions: [
           IconButton(
             icon: const Icon(Icons.date_range),
@@ -89,9 +96,10 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: AppTheme.textMuted),
+                  const Icon(Icons.error_outline,
+                      size: 48, color: AppTheme.textMuted),
                   const SizedBox(height: 12),
-                  Text('Erro ao carregar dashboard',
+                  const Text('Erro ao carregar dashboard',
                       style: TextStyle(color: AppTheme.textMuted)),
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
@@ -110,7 +118,6 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Período selecionado (preservado)
                 _ChipPeriodo(
                   inicio: _dataInicio,
                   fim: _dataFim,
@@ -118,8 +125,6 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
                   onTap: _selecionarPeriodo,
                 ),
                 const SizedBox(height: 16),
-
-                // Cards de hoje (preservado, mas com FittedBox nos valores para não truncar)
                 const _SecaoTitulo(titulo: '📅 Hoje'),
                 const SizedBox(height: 8),
                 Row(
@@ -144,8 +149,6 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // Cards do período (ajustado para não quebrar valores/títulos)
                 _SecaoTitulo(
                   titulo:
                       '📊 ${_fmtData.format(_dataInicio)} — ${_fmtData.format(_dataFim)}',
@@ -181,8 +184,6 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
                   larguraTotal: true,
                 ),
                 const SizedBox(height: 24),
-
-                // Ranking vendedores (preservado, com ajustes para nomes longos)
                 const _SecaoTitulo(titulo: '🏆 Ranking de Vendedores'),
                 const SizedBox(height: 8),
                 if (d.rankingVendedores.isEmpty)
@@ -211,7 +212,7 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
   }
 }
 
-// ── Widgets internos ──────────────────────────────────────────────────────────
+// ── Widgets internos (mantidos do original) ───────────────────────────────────
 
 class _ChipPeriodo extends StatelessWidget {
   final DateTime inicio;
@@ -231,23 +232,27 @@ class _ChipPeriodo extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: AppTheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+          border:
+              Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.date_range, color: AppTheme.primary, size: 18),
+            const Icon(Icons.date_range,
+                color: AppTheme.primary, size: 18),
             const SizedBox(width: 8),
-            Flexible(  // ← AJUSTE 13: Adicionado Flexible para texto longo do período não quebrar o chip
+            Flexible(
               child: Text(
                 '${fmt.format(inicio)} até ${fmt.format(fim)}',
                 style: const TextStyle(
-                    color: AppTheme.primary, fontWeight: FontWeight.w600),
-                overflow: TextOverflow.ellipsis,  // Trunca se período for muito longo
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
             ),
@@ -266,13 +271,11 @@ class _SecaoTitulo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      titulo,
-      style: const TextStyle(
-          fontSize: 14,  // Mantido ajuste sutil
-          fontWeight: FontWeight.bold,
-          color: AppTheme.textDark),
-    );
+    return Text(titulo,
+        style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textDark));
   }
 }
 
@@ -295,7 +298,7 @@ class _CardIndicador extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),  // ← AJUSTE 14: Reduzido de 16px para 12px (mais espaço para valores longos sem quebrar)
+        padding: const EdgeInsets.all(12),
         child: Row(
           children: [
             Container(
@@ -312,29 +315,23 @@ class _CardIndicador extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  FittedBox(  // ← AJUSTE 15: Adicionado FittedBox para título escalar automaticamente se longo (ex: "Ticket Médio" fica em 1 linha)
+                  FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text(
-                      titulo,
-                      style: const TextStyle(
-                          fontSize: 13,  // ← AJUSTE 16: Reduzido de 11px para 13px no FittedBox (equilibra com valores)
-                          color: AppTheme.textMuted),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,  // Trunca se necessário (ex: "Ticket Médio" vira "Ticket M...")
-                    ),
+                    child: Text(titulo,
+                        style: const TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.textMuted),
+                        maxLines: 1),
                   ),
                   const SizedBox(height: 2),
-                  FittedBox(  // ← AJUSTE 17: Adicionado FittedBox para valor escalar (ex: "R$ 132.448,49" cabe sem truncar ou quebrar)
+                  FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text(
-                      valor,
-                      style: TextStyle(
-                          fontSize: 14,  // ← AJUSTE 18: Reduzido para 14px (cabe "R$ 132.448,49" em 1 linha sem empilhar)
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textDark),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,  // Trunca se valor for extremamente longo
-                    ),
+                    child: Text(valor,
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textDark),
+                        maxLines: 1),
                   ),
                 ],
               ),
@@ -363,7 +360,8 @@ class _CardRanking extends StatelessWidget {
   Widget build(BuildContext context) {
     final pct = totalGeral > 0 ? ranking.totalVendas / totalGeral : 0.0;
     final medalhas = ['🥇', '🥈', '🥉'];
-    final emoji = posicao <= 3 ? medalhas[posicao - 1] : '$posicao°';
+    final emoji =
+        posicao <= 3 ? medalhas[posicao - 1] : '$posicao°';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -374,34 +372,27 @@ class _CardRanking extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(emoji,
-                    style: const TextStyle(fontSize: 20)),
+                Text(emoji, style: const TextStyle(fontSize: 20)),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: FittedBox(  // ← AJUSTE 19: Adicionado FittedBox para nome escalar (ex: "MAYARA CRISTINA..." cabe em 1 linha sem 3 linhas)
+                  child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text(
-                      ranking.vendedorNome,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,  // Mantido ajuste
-                          color: AppTheme.textDark),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,  // Trunca nomes longos (ex: "MAYARA CRISTINA TOBIAS SALLES" vira "MAYARA CRISTINA...")
-                    ),
+                    child: Text(ranking.vendedorNome,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: AppTheme.textDark),
+                        maxLines: 1),
                   ),
                 ),
-                FittedBox(  // ← AJUSTE 20: Adicionado para valor escalar (cabe "R$ 786,60" sem transbordar)
+                FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text(
-                    fmt.format(ranking.totalVendas),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,  // Mantido ajuste
-                        color: AppTheme.primary),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  child: Text(fmt.format(ranking.totalVendas),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppTheme.primary),
+                      maxLines: 1),
                 ),
               ],
             ),
@@ -417,21 +408,17 @@ class _CardRanking extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '${ranking.quantidadePedidos} pedidos',
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),  // Mantido ajuste
-                ),
-                Text(
-                  'Ticket: ${fmt.format(ranking.ticketMedio)}',
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),  // Mantido ajuste
-                ),
-                Text(
-                  '${(pct * 100).toStringAsFixed(1)}%',
-                  style: const TextStyle(
-                      fontSize: 11,  // Mantido ajuste
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primary),
-                ),
+                Text('${ranking.quantidadePedidos} pedidos',
+                    style: const TextStyle(
+                        fontSize: 11, color: AppTheme.textMuted)),
+                Text('Ticket: ${fmt.format(ranking.ticketMedio)}',
+                    style: const TextStyle(
+                        fontSize: 11, color: AppTheme.textMuted)),
+                Text('${(pct * 100).toStringAsFixed(1)}%',
+                    style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primary)),
               ],
             ),
           ],
