@@ -27,10 +27,14 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
   String _modoBusca = 'numero';
 
   bool _carregando = false;
-  bool _processando = false;
   String? _erro;
   Cliente? _clienteSelecionado;
   List<PreVendaDetalhe> _resultados = [];
+
+  // Itens bipados/digitados ficam aqui — SÓ EM MEMÓRIA, nada é excluído no
+  // servidor ainda. O usuário confere no modal e só ao apertar "Confirmar"
+  // é que a exclusão de verdade acontece no backend (ver _confirmarDevolucao).
+  final List<_ItemStaged> _staged = [];
 
   // Total de itens no momento em que a busca trouxe os condicionais — fixo
   // até a próxima busca, usado como base pros contadores "devolvendo/ficam".
@@ -44,7 +48,7 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
   }
 
   int get _totalRestante => _resultados.fold(0, (s, g) => s + g.itens.length);
-  int get _totalDevolvido => _totalOriginal - _totalRestante;
+  int get _totalDevolvendo => _staged.length;
 
   // ── Busca ─────────────────────────────────────────────────────────────────────
 
@@ -59,6 +63,7 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
       _erro = null;
       _resultados = [];
       _totalOriginal = 0;
+      _staged.clear();
     });
     try {
       final detalhe = await _vendasService.getPreVendaDetalhe(id);
@@ -90,6 +95,7 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
       _erro = null;
       _resultados = [];
       _totalOriginal = 0;
+      _staged.clear();
     });
     try {
       final abertos = await _vendasService.listarPreVendas(
@@ -118,7 +124,10 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
     }
   }
 
-  // ── Leitura / devolução ──────────────────────────────────────────────────────
+  // ── Leitura / estágio de devolução ──────────────────────────────────────────────
+  // Bipar/digitar só MOVE o item, localmente, da lista do condicional pra lista
+  // de "devolvendo" (_staged) — nada é enviado ao servidor aqui. A exclusão de
+  // verdade só acontece em _confirmarDevolucao, disparada de dentro do modal.
 
   Future<void> _abrirScanner() async {
     final codigo = await Navigator.of(context, rootNavigator: true).push<String>(
@@ -143,60 +152,73 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
     for (final grupo in _resultados) {
       for (final item in grupo.itens) {
         if (item.produtoId == pk) {
-          _devolverItem(grupo, item);
+          _estagiarItem(grupo, item);
           return;
         }
       }
     }
-    _mostrarMensagem('Código $codigo não pertence a nenhum condicional encontrado.', erro: true);
+    _mostrarMensagem('Código $codigo não pertence a nenhum item pendente neste condicional.', erro: true);
   }
 
-  Future<void> _devolverItem(PreVendaDetalhe grupo, ItemVenda item) async {
-    setState(() => _processando = true);
-    try {
-      await _vendasService.devolverItemPreVenda(grupo.pkChave, item.pkChave);
-      setState(() => grupo.itens.removeWhere((i) => i.pkChave == item.pkChave));
-      _mostrarUndo(grupo, item);
-    } catch (e) {
-      _mostrarMensagem('Erro: $e', erro: true);
-    } finally {
-      if (mounted) setState(() => _processando = false);
+  void _estagiarItem(PreVendaDetalhe grupo, ItemVenda item) {
+    setState(() {
+      grupo.itens.removeWhere((i) => i.pkChave == item.pkChave);
+      _staged.add(_ItemStaged(grupo: grupo, item: item));
+    });
+    _mostrarMensagem('${item.produtoNome ?? "Item"} movido pra devolvidos.');
+  }
+
+  void _devolverAoCondicional(_ItemStaged staged) {
+    setState(() {
+      _staged.remove(staged);
+      staged.grupo.itens.add(staged.item);
+    });
+  }
+
+  bool _confirmando = false;
+
+  /// Efetiva de verdade a exclusão dos itens estagiados. Disparado pelo botão
+  /// fixo na tela principal (não no modal — o modal é só conferência). Se
+  /// algum item falhar (ex: pré-venda foi efetivada por outra pessoa nesse
+  /// meio-tempo), ele permanece na lista de "devolvendo" pra decidir o que fazer.
+  Future<void> _confirmarDevolucao() async {
+    if (_staged.isEmpty || _confirmando) return;
+    setState(() => _confirmando = true);
+    final falhas = <_ItemStaged>[];
+    for (final s in List<_ItemStaged>.from(_staged)) {
+      try {
+        await _vendasService.devolverItemPreVenda(s.grupo.pkChave, s.item.pkChave);
+        if (mounted) setState(() => _staged.remove(s));
+      } catch (_) {
+        falhas.add(s);
+      }
     }
-  }
-
-  Future<void> _restaurarItem(PreVendaDetalhe grupo, ItemVenda item) async {
-    setState(() => _processando = true);
-    try {
-      final novo = await _vendasService.restaurarItemPreVenda(grupo.pkChave, item);
-      setState(() => grupo.itens.add(novo));
-      _mostrarMensagem('${item.produtoNome ?? "Item"} voltou pro condicional.');
-    } catch (e) {
-      _mostrarMensagem('Erro ao desfazer: $e', erro: true);
-    } finally {
-      if (mounted) setState(() => _processando = false);
-    }
-  }
-
-  void _mostrarUndo(PreVendaDetalhe grupo, ItemVenda item) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${item.produtoNome ?? "Item"} devolvido.'),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 6),
-        action: SnackBarAction(
-          label: 'DESFAZER',
-          textColor: Colors.white,
-          onPressed: () => _restaurarItem(grupo, item),
-        ),
-      ),
-    );
+    setState(() => _confirmando = false);
+    if (falhas.isEmpty) {
+      _mostrarMensagem('Devolução confirmada!');
+    } else {
+      _mostrarMensagem('${falhas.length} item(ns) não puderam ser devolvidos — confira e tente de novo.', erro: true);
+    }
   }
 
   void _mostrarMensagem(String texto, {bool erro = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(texto), backgroundColor: erro ? Colors.red : Colors.green),
+    );
+  }
+
+  void _abrirModalDevolvidos() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ModalItensDevolvidos(
+        staged: _staged,
+        fmt: _fmt,
+        onDevolverAoCondicional: _devolverAoCondicional,
+      ),
     );
   }
 
@@ -307,7 +329,7 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
                       ),
                       const SizedBox(width: 8),
                       IconButton.filled(
-                        onPressed: _habilitadoSeNaoProcessando(_processarCodigoDigitado),
+                        onPressed: _processarCodigoDigitado,
                         icon: const Icon(Icons.check),
                       ),
                     ],
@@ -317,7 +339,12 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
                     children: [
                       Expanded(child: _EstatChip(rotulo: 'No condicional', valor: _totalOriginal, cor: AppTheme.textDark)),
                       const SizedBox(width: 8),
-                      Expanded(child: _EstatChip(rotulo: 'Devolvendo', valor: _totalDevolvido, cor: Colors.red)),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _staged.isEmpty ? null : _abrirModalDevolvidos,
+                          child: _EstatChip(rotulo: 'Devolvendo (toque p/ ver)', valor: _totalDevolvendo, cor: Colors.red),
+                        ),
+                      ),
                       const SizedBox(width: 8),
                       Expanded(child: _EstatChip(rotulo: 'Ficam', valor: _totalRestante, cor: Colors.green)),
                     ],
@@ -349,7 +376,7 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
                                 if (grupo.itens.isEmpty)
                                   const Padding(
                                     padding: EdgeInsets.symmetric(vertical: 8),
-                                    child: Text('Todos os itens deste condicional foram devolvidos.',
+                                    child: Text('Nenhum item pendente neste condicional.',
                                         style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
                                   )
                                 else
@@ -357,7 +384,7 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
                                     _ItemDevolucao(
                                       item: item,
                                       fmt: _fmt,
-                                      onTap: _processando ? null : () => _devolverItem(grupo, item),
+                                      onTap: () => _estagiarItem(grupo, item),
                                     ),
                                 const SizedBox(height: 12),
                               ],
@@ -366,10 +393,53 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
           ),
         ],
       ),
+      bottomNavigationBar: _staged.isEmpty
+          ? null
+          : SafeArea(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, -2))],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _abrirModalDevolvidos,
+                        icon: const Icon(Icons.visibility_outlined),
+                        label: Text('Conferir (${_staged.length})'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        onPressed: _confirmando ? null : _confirmarDevolucao,
+                        icon: _confirmando
+                            ? const SizedBox(
+                                width: 16, height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.check),
+                        label: Text(_confirmando ? 'Confirmando...' : 'Confirmar Devolução'),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
     );
   }
+}
 
-  VoidCallback? _habilitadoSeNaoProcessando(VoidCallback fn) => _processando ? null : fn;
+// ── Item devolvido, ainda pendente de confirmação ────────────────────────────
+
+class _ItemStaged {
+  final PreVendaDetalhe grupo;
+  final ItemVenda item;
+  const _ItemStaged({required this.grupo, required this.item});
 }
 
 // ── Cabeçalho do condicional ────────────────────────────────────────────────────
@@ -478,6 +548,128 @@ class _EstatChip extends StatelessWidget {
           Text(rotulo, style: TextStyle(fontSize: 10, color: cor)),
         ],
       ),
+    );
+  }
+}
+
+// ── Modal: conferir os itens devolvidos ─────────────────────────────────────────
+// Só conferência + desfazer. A confirmação de verdade fica no botão fixo da
+// tela principal (onde ficam os itens que continuam no condicional).
+
+class _ModalItensDevolvidos extends StatefulWidget {
+  final List<_ItemStaged> staged;
+  final NumberFormat fmt;
+  final void Function(_ItemStaged) onDevolverAoCondicional;
+
+  const _ModalItensDevolvidos({
+    required this.staged,
+    required this.fmt,
+    required this.onDevolverAoCondicional,
+  });
+
+  @override
+  State<_ModalItensDevolvidos> createState() => _ModalItensDevolvidosState();
+}
+
+class _ModalItensDevolvidosState extends State<_ModalItensDevolvidos> {
+  void _devolverAoCondicional(_ItemStaged s) {
+    setState(() => widget.onDevolverAoCondicional(s));
+    if (widget.staged.isEmpty) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.3,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Column(
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(Icons.assignment_return_outlined, color: Colors.red),
+                  const SizedBox(width: 8),
+                  Text('Itens devolvendo (${widget.staged.length})',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textDark)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Toque num item pra colocá-lo de volta no condicional. Pra confirmar de verdade, feche e use o botão na tela.',
+                style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: widget.staged.isEmpty
+                    ? const Center(child: Text('Nenhum item devolvendo.', style: TextStyle(color: AppTheme.textMuted)))
+                    : ListView.builder(
+                        controller: scrollController,
+                        itemCount: widget.staged.length,
+                        itemBuilder: (context, i) {
+                          final s = widget.staged[i];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(s.item.produtoNome ?? '—',
+                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textDark),
+                                          maxLines: 2),
+                                      Text(
+                                        'Cód: ${s.item.produtoId} · Condicional #${s.grupo.pkChave}',
+                                        style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(widget.fmt.format(s.item.vrTotalLiquido),
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.red)),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  tooltip: 'Colocar de volta no condicional',
+                                  icon: const Icon(Icons.undo, color: AppTheme.primary),
+                                  onPressed: () => _devolverAoCondicional(s),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 44)),
+                child: const Text('Fechar'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
