@@ -9,6 +9,9 @@ import 'pre_vendas/pre_vendas_screen.dart';
 import 'produtos/produtos_screen.dart';
 import 'estatisticas/estatisticas_screen.dart';
 import 'financeiro/contas_pagar_screen.dart';
+import 'financeiro/contas_receber_screen.dart';
+import 'financeiro/despesas_por_categoria_screen.dart';
+import 'financeiro/apuracao_resultado_screen.dart';
 
 
 class VendasHomeScreen extends StatefulWidget {
@@ -146,54 +149,108 @@ class _AppDrawer extends StatelessWidget {
               ],
             ),
           ),
-          _DrawerItem(icone: Icons.dashboard_outlined, label: 'Dashboard', selecionado: abaSelecionada == 0, onTap: () => onNavegar(0)),
-          _DrawerItem(icone: Icons.receipt_long_outlined, label: 'Pedidos de Venda', selecionado: abaSelecionada == 1, onTap: () => onNavegar(1)),
-          _DrawerItem(icone: Icons.assignment_outlined, label: 'Pré-Vendas', selecionado: abaSelecionada == 2, onTap: () => onNavegar(2)),
-          _DrawerItem(icone: Icons.inventory_2_outlined, label: 'Produtos', selecionado: abaSelecionada == 3, onTap: () => onNavegar(3)),
-          // ✅ Estatísticas só para administradores
-          if (ehAdmin)
-            _DrawerItem(
-              icone: Icons.bar_chart_outlined,
-              label: 'Estatísticas',
-              selecionado: false,
-              onTap: () {
-                Navigator.pop(context); // fecha o drawer
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const EstatisticasScreen(),
-                  ),
-                );
-              },
+          
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              children: [
+                _DrawerItem(
+                  icone: Icons.dashboard_outlined, 
+                  label: 'Dashboard', 
+                  selecionado: abaSelecionada == 0, 
+                  onTap: () => onNavegar(0)
+                ),
+                
+                // --- SESSÃO: MOVIMENTAÇÕES ---
+                ExpansionTile(
+                  leading: const Icon(Icons.swap_horiz, color: AppTheme.primary),
+                  title: const Text('Movimentações', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  initiallyExpanded: abaSelecionada == 1 || abaSelecionada == 2,
+                  children: [
+                    _DrawerItem(icone: Icons.receipt_long_outlined, label: 'Pedidos de Venda', selecionado: abaSelecionada == 1, onTap: () => onNavegar(1)),
+                    _DrawerItem(icone: Icons.assignment_outlined, label: 'Pré-Vendas', selecionado: abaSelecionada == 2, onTap: () => onNavegar(2)),
+                  ],
+                ),
+
+                // --- SESSÃO: FINANCEIRO ---
+                // Contas a Receber é liberada para qualquer usuário logado (vendedores,
+                // caixas, admins). Contas a Pagar, Despesas por Categoria e Apuração de
+                // Resultados continuam restritas a administradores.
+                ExpansionTile(
+                  leading: const Icon(Icons.account_balance_wallet_outlined, color: AppTheme.primary),
+                  title: const Text('Financeiro', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  children: [
+                    _DrawerItem(
+                      icone: Icons.arrow_downward,
+                      label: 'Contas a Receber',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(builder: (_) => const ContasReceberScreen()));
+                      }
+                    ),
+                    if (ehAdmin) ...[
+                      _DrawerItem(
+                        icone: Icons.arrow_upward,
+                        label: 'Contas a Pagar',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(builder: (_) => const ContasPagarScreen()));
+                        }
+                      ),
+                      _DrawerItem(
+                        icone: Icons.category_outlined,
+                        label: 'Despesas por Categoria',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(builder: (_) => const DespesasPorCategoriaScreen()));
+                        }
+                      ),
+                      _DrawerItem(
+                        icone: Icons.insights_outlined,
+                        label: 'Apuração de Resultados',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(builder: (_) => const ApuracaoResultadoScreen()));
+                        }
+                      ),
+                    ],
+                  ],
+                ),
+
+                // --- SESSÃO: CONSULTAS ---
+                ExpansionTile(
+                  leading: const Icon(Icons.search, color: AppTheme.primary),
+                  title: const Text('Consultas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  initiallyExpanded: abaSelecionada == 3,
+                  children: [
+                    _DrawerItem(icone: Icons.inventory_2_outlined, label: 'Produtos', selecionado: abaSelecionada == 3, onTap: () => onNavegar(3)),
+                    if (ehAdmin)
+                      _DrawerItem(
+                        icone: Icons.bar_chart_outlined, 
+                        label: 'Estatísticas', 
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const EstatisticasScreen()));
+                        }
+                      ),
+                  ],
+                ),
+
+                const Divider(),
+                _DrawerItem(
+                  icone: Icons.settings_outlined,
+                  label: 'Configurações',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ConfiguracoesScreen()));
+                  },
+                ),
+              ],
             ),
-          if (ehAdmin) ...[
-            const Divider(),
-            _DrawerItem(
-              icone: Icons.account_balance_wallet_outlined,
-              label: 'Contas a Pagar',
-              selecionado: false,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (_) => const ContasPagarScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
-          const Divider(),
-          _DrawerItem(
-            icone: Icons.settings_outlined,
-            label: 'Configurações',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const ConfiguracoesScreen()));
-            },
           ),
-          const Spacer(),
+          
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             child: OutlinedButton.icon(
               onPressed: () {
                 Navigator.pop(context);
@@ -229,9 +286,10 @@ class _DrawerItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icone, color: selecionado ? AppTheme.primary : AppTheme.textMuted),
+      leading: Icon(icone, color: selecionado ? AppTheme.primary : AppTheme.textMuted, size: 20),
       title: Text(label,
           style: TextStyle(
+              fontSize: 13,
               color: selecionado ? AppTheme.primary : AppTheme.textDark,
               fontWeight: selecionado ? FontWeight.bold : FontWeight.normal)),
       selected: selecionado,

@@ -26,6 +26,8 @@ dependencies:
   printing: ^5.13.1
   share_plus: ^10.0.0
   path_provider: ^2.1.5
+  fl_chart: ^0.69.0
+  shared_preferences: ^2.3.2
 
 dev_dependencies:
   flutter_test:
@@ -38,9 +40,14 @@ flutter:
   assets:
     - assets/icons/  # Pasta onde a logo está
 
-flutter_icons:  
+flutter_icons:
   android: true
   ios: true
   image_path: "assets/icons/logo.png"
   adaptive_icon_background: "#ffffff"
   adaptive_icon_foreground: "assets/icons/logo.png"
+  web:
+    generate: true
+    image_path: "assets/icons/logo.png"
+    background_color: "#1E88E5"
+    theme_color: "#1E88E5"

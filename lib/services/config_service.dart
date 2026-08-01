@@ -1,11 +1,9 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'app_storage.dart';
 
 class ConfigService {
   static final ConfigService _instance = ConfigService._internal();
   factory ConfigService() => _instance;
   ConfigService._internal();
-
-  final _storage = const FlutterSecureStorage();
 
   static const _keyServidorIp = 'servidor_ip';
   static const _keyServidorPorta = 'servidor_porta';
@@ -14,26 +12,26 @@ class ConfigService {
   static const _keyNomeEmpresa = 'nome_empresa';
 
   Future<String> getServidorIp() async {
-    return await _storage.read(key: _keyServidorIp) ?? '159.65.167.110';
+    return await AppStorage.read(_keyServidorIp) ?? '159.65.167.110';
   }
 
   Future<int> getServidorPorta() async {
-    final v = await _storage.read(key: _keyServidorPorta);
+    final v = await AppStorage.read(_keyServidorPorta);
     final porta = int.tryParse(v ?? '') ?? 8001; // ✅ padrão corrigido para 8001
     // ✅ migra automaticamente quem ainda tiver 8000 salvo
     if (porta == 8000) {
-      await _storage.write(key: _keyServidorPorta, value: '8001');
+      await AppStorage.write(_keyServidorPorta, '8001');
       return 8001;
     }
     return porta;
   }
 
   Future<String> getImpressoraIp() async {
-    return await _storage.read(key: _keyImpressoraIp) ?? '';
+    return await AppStorage.read(_keyImpressoraIp) ?? '';
   }
 
   Future<int> getImpressoraPorta() async {
-    final v = await _storage.read(key: _keyImpressoraPorta);
+    final v = await AppStorage.read(_keyImpressoraPorta);
     return int.tryParse(v ?? '') ?? 9100;
   }
 
@@ -44,15 +42,15 @@ class ConfigService {
     int? impressoraPorta,
     String? nomeEmpresa,
   }) async {
-    if (servidorIp != null) await _storage.write(key: _keyServidorIp, value: servidorIp);
-    if (servidorPorta != null) await _storage.write(key: _keyServidorPorta, value: servidorPorta.toString());
-    if (impressoraIp != null) await _storage.write(key: _keyImpressoraIp, value: impressoraIp);
-    if (impressoraPorta != null) await _storage.write(key: _keyImpressoraPorta, value: impressoraPorta.toString());
-    if (nomeEmpresa != null) await _storage.write(key: _keyNomeEmpresa, value: nomeEmpresa);
+    if (servidorIp != null) await AppStorage.write(_keyServidorIp, servidorIp);
+    if (servidorPorta != null) await AppStorage.write(_keyServidorPorta, servidorPorta.toString());
+    if (impressoraIp != null) await AppStorage.write(_keyImpressoraIp, impressoraIp);
+    if (impressoraPorta != null) await AppStorage.write(_keyImpressoraPorta, impressoraPorta.toString());
+    if (nomeEmpresa != null) await AppStorage.write(_keyNomeEmpresa, nomeEmpresa);
   }
 
   Future<String> getNomeEmpresa() async {
-    return await _storage.read(key: _keyNomeEmpresa) ?? '';
+    return await AppStorage.read(_keyNomeEmpresa) ?? '';
   }
 
   Future<String> getBaseUrl() async {

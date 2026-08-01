@@ -20,6 +20,7 @@ class Vendedor {
 class RankingVendedor {
   final int vendedorId;
   final String vendedorNome;
+  final String? secao;
   final double totalVendas;
   final int quantidadePedidos;
   final double ticketMedio;
@@ -27,6 +28,7 @@ class RankingVendedor {
   RankingVendedor({
     required this.vendedorId,
     required this.vendedorNome,
+    this.secao,
     required this.totalVendas,
     required this.quantidadePedidos,
     required this.ticketMedio,
@@ -35,9 +37,38 @@ class RankingVendedor {
   factory RankingVendedor.fromJson(Map<String, dynamic> json) => RankingVendedor(
         vendedorId: json['vendedor_id'],
         vendedorNome: json['vendedor_nome'] ?? '—',
+        secao: json['secao'],
         totalVendas: double.parse(json['total_vendas'].toString()),
         quantidadePedidos: json['quantidade_pedidos'],
         ticketMedio: double.parse(json['ticket_medio'].toString()),
+      );
+}
+
+// ── Seção do Dashboard (totais e ranking agrupados por seção) ──────────────────
+
+class SecaoDashboard {
+  final String secao;
+  final double totalVendas;
+  final int quantidadePedidos;
+  final double ticketMedio;
+  final List<RankingVendedor> rankingVendedores;
+
+  SecaoDashboard({
+    required this.secao,
+    required this.totalVendas,
+    required this.quantidadePedidos,
+    required this.ticketMedio,
+    required this.rankingVendedores,
+  });
+
+  factory SecaoDashboard.fromJson(Map<String, dynamic> json) => SecaoDashboard(
+        secao: json['secao'] ?? 'Sem Seção',
+        totalVendas: double.parse(json['total_vendas'].toString()),
+        quantidadePedidos: json['quantidade_pedidos'],
+        ticketMedio: double.parse(json['ticket_medio'].toString()),
+        rankingVendedores: (json['ranking_vendedores'] as List)
+            .map((r) => RankingVendedor.fromJson(r))
+            .toList(),
       );
 }
 
@@ -50,6 +81,7 @@ class DashboardVendas {
   final double totalVendasHoje;
   final int quantidadePedidosHoje;
   final List<RankingVendedor> rankingVendedores;
+  final List<SecaoDashboard> secoes;
   final DateTime dataInicio;
   final DateTime dataFim;
 
@@ -60,6 +92,7 @@ class DashboardVendas {
     required this.totalVendasHoje,
     required this.quantidadePedidosHoje,
     required this.rankingVendedores,
+    required this.secoes,
     required this.dataInicio,
     required this.dataFim,
   });
@@ -72,6 +105,9 @@ class DashboardVendas {
         quantidadePedidosHoje: json['quantidade_pedidos_hoje'],
         rankingVendedores: (json['ranking_vendedores'] as List)
             .map((r) => RankingVendedor.fromJson(r))
+            .toList(),
+        secoes: (json['secoes'] as List? ?? [])
+            .map((s) => SecaoDashboard.fromJson(s))
             .toList(),
         dataInicio: DateTime.parse(json['data_inicio']),
         dataFim: DateTime.parse(json['data_fim']),

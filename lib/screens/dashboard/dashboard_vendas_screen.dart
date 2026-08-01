@@ -25,6 +25,10 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
   DateTime _dataFim = DateTime(
       DateTime.now().year, DateTime.now().month, DateTime.now().day);
 
+  // null = "Geral" (todas as seções somadas); caso contrário, nome da seção
+  // selecionada (ex: "FEMININO", "KIDS", "Sem Seção").
+  String? _secaoSelecionada;
+
   @override
   void initState() {
     super.initState();
@@ -113,6 +117,20 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
           }
 
           final d = snap.data!;
+          // Se a seção selecionada não existe mais no período atual (ex:
+          // trocou o período e não teve venda dessa seção), volta pra Geral.
+          SecaoDashboard? secaoAtual;
+          for (final s in d.secoes) {
+            if (s.secao == _secaoSelecionada) {
+              secaoAtual = s;
+              break;
+            }
+          }
+          final totalVendasView = secaoAtual?.totalVendas ?? d.totalVendas;
+          final ticketMedioView = secaoAtual?.ticketMedio ?? d.ticketMedio;
+          final quantidadePedidosView = secaoAtual?.quantidadePedidos ?? d.quantidadePedidos;
+          final rankingView = secaoAtual?.rankingVendedores ?? d.rankingVendedores;
+
           return RefreshIndicator(
             onRefresh: () async => _carregar(),
             child: ListView(
@@ -124,6 +142,14 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
                   fmt: _fmtData,
                   onTap: _selecionarPeriodo,
                 ),
+                if (d.secoes.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _SeletorSecao(
+                    secoes: d.secoes,
+                    selecionada: _secaoSelecionada,
+                    onSelecionar: (s) => setState(() => _secaoSelecionada = s),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 const _SecaoTitulo(titulo: '📅 Hoje'),
                 const SizedBox(height: 8),
@@ -150,8 +176,8 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
                 ),
                 const SizedBox(height: 20),
                 _SecaoTitulo(
-                  titulo:
-                      '📊 ${_fmtData.format(_dataInicio)} — ${_fmtData.format(_dataFim)}',
+                  titulo: '📊 ${_secaoSelecionada ?? "Geral"} — '
+                      '${_fmtData.format(_dataInicio)} — ${_fmtData.format(_dataFim)}',
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -159,7 +185,7 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
                     Expanded(
                       child: _CardIndicador(
                         titulo: 'Total',
-                        valor: _fmt.format(d.totalVendas),
+                        valor: _fmt.format(totalVendasView),
                         icone: Icons.monetization_on,
                         cor: Colors.green,
                       ),
@@ -168,7 +194,7 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
                     Expanded(
                       child: _CardIndicador(
                         titulo: 'Ticket Médio',
-                        valor: _fmt.format(d.ticketMedio),
+                        valor: _fmt.format(ticketMedioView),
                         icone: Icons.trending_up,
                         cor: Colors.orange,
                       ),
@@ -178,15 +204,15 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
                 const SizedBox(height: 8),
                 _CardIndicador(
                   titulo: 'Total de Pedidos no Período',
-                  valor: '${d.quantidadePedidos} pedidos',
+                  valor: '$quantidadePedidosView pedidos',
                   icone: Icons.list_alt,
                   cor: Colors.purple,
                   larguraTotal: true,
                 ),
                 const SizedBox(height: 24),
-                const _SecaoTitulo(titulo: '🏆 Ranking de Vendedores'),
+                _SecaoTitulo(titulo: '🏆 Ranking de Vendedores — ${_secaoSelecionada ?? "Geral"}'),
                 const SizedBox(height: 8),
-                if (d.rankingVendedores.isEmpty)
+                if (rankingView.isEmpty)
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.all(16),
@@ -195,12 +221,12 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
                     ),
                   )
                 else
-                  ...d.rankingVendedores.asMap().entries.map(
+                  ...rankingView.asMap().entries.map(
                         (e) => _CardRanking(
                           posicao: e.key + 1,
                           ranking: e.value,
                           fmt: _fmt,
-                          totalGeral: d.totalVendas,
+                          totalGeral: totalVendasView,
                         ),
                       ),
               ],
@@ -259,6 +285,56 @@ class _ChipPeriodo extends StatelessWidget {
             const Spacer(),
             const Icon(Icons.edit, color: AppTheme.primary, size: 16),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SeletorSecao extends StatelessWidget {
+  final List<SecaoDashboard> secoes;
+  final String? selecionada;
+  final ValueChanged<String?> onSelecionar;
+
+  const _SeletorSecao({
+    required this.secoes,
+    required this.selecionada,
+    required this.onSelecionar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _chip('Geral', selecionada == null, () => onSelecionar(null)),
+          for (final s in secoes) ...[
+            const SizedBox(width: 8),
+            _chip(s.secao, selecionada == s.secao, () => onSelecionar(s.secao)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String label, bool selecionado, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selecionado ? AppTheme.primary : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selecionado ? AppTheme.primary : Colors.grey[300]!),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: selecionado ? Colors.white : AppTheme.textMuted,
+          ),
         ),
       ),
     );

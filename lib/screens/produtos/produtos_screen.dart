@@ -440,12 +440,44 @@ class _ScannerScreen extends StatefulWidget {
   State<_ScannerScreen> createState() => _ScannerScreenState();
 }
 
+// Deliberadamente SEM restrição de "formats": tentamos restringir a formatos
+// 1D comuns antes, mas isso piorou a leitura das etiquetas próprias da loja —
+// sinal de que o formato usado não estava na lista, então a restrição forçava
+// decodificações erradas em vez de deixar o mobile_scanner reconhecer o
+// formato certo (que ele identifica automaticamente quando não é restringido).
+
 class _ScannerScreenState extends State<_ScannerScreen> {
-  final _controller = MobileScannerController();
+  // No Android, sem especificar isso o mobile_scanner usa 640x480 por padrão
+  // — resolução baixa demais pra ler um código de barras a uma distância
+  // confortável, obrigando o usuário a chegar muito perto (e aí a câmera não
+  // consegue focar direito, embaçando a imagem e gerando leituras erradas).
+  // Pedimos 4K (o plugin cai pra maior resolução disponível se não suportar) —
+  // mais pixels por barra ajuda a resolver os elementos mais finos do código
+  // (o primeiro a "borrar" conforme a distância aumenta). Torch ligado por
+  // padrão aumenta o contraste e permite obturador mais rápido (menos blur de
+  // movimento). "unrestricted" analisa todo frame sem intervalo, aumentando a
+  // chance de capturar um frame nítido em vez de esperar 250ms entre tentativas.
+  final _controller = MobileScannerController(
+    cameraResolution: const Size(3840, 2160),
+    torchEnabled: true,
+    detectionSpeed: DetectionSpeed.unrestricted,
+  );
   bool _escaneado = false;
+
+  // Exige a MESMA leitura duas vezes seguidas antes de aceitar. Uma leitura
+  // corrompida por instabilidade da câmera (blur, ângulo, reflexo) raramente
+  // se repete de forma idêntica no frame seguinte — já uma leitura correta,
+  // com o código ainda em quadro, se repete naturalmente. Isso filtra a
+  // grande maioria dos falsos positivos sem precisar saber a causa exata.
+  String? _ultimoCodigoLido;
+  int _leiturasConsecutivas = 0;
+  static const _leiturasNecessarias = 2;
 
   @override
   void dispose() { _controller.dispose(); super.dispose(); }
+
+  static const _larguraJanela = 260.0;
+  static const _alturaJanela = 120.0;
 
   @override
   Widget build(BuildContext context) {
@@ -457,19 +489,66 @@ class _ScannerScreenState extends State<_ScannerScreen> {
         title: const Text('Escanear código de barras'),
         actions: [IconButton(icon: const Icon(Icons.flash_on), onPressed: () => _controller.toggleTorch())],
       ),
-      body: Stack(
-        children: [
-          MobileScanner(
-            controller: _controller,
-            onDetect: (capture) {
-              if (_escaneado) return;
-              final barcode = capture.barcodes.firstOrNull;
-              if (barcode?.rawValue != null) { _escaneado = true; Navigator.pop(context, barcode!.rawValue); }
-            },
-          ),
-          Center(child: Container(width: 260, height: 120, decoration: BoxDecoration(border: Border.all(color: AppTheme.primary, width: 2), borderRadius: BorderRadius.circular(12)))),
-          const Positioned(bottom: 40, left: 0, right: 0, child: Text('Aponte para o código de barras', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14))),
-        ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // A área de leitura real é restrita ao retângulo desenhado na tela
+          // (scanWindow) — sem isso, o mobile_scanner lê o frame inteiro da
+          // câmera, incluindo etiquetas vizinhas fora da mira (comum em roupas
+          // penduradas lado a lado), o que causava leitura do código errado.
+          final tamanho = constraints.biggest;
+          final scanWindow = Rect.fromCenter(
+            center: tamanho.center(Offset.zero),
+            width: _larguraJanela,
+            height: _alturaJanela,
+          );
+          return Stack(
+            children: [
+              MobileScanner(
+                controller: _controller,
+                scanWindow: scanWindow,
+                onDetect: (capture) {
+                  if (_escaneado) return;
+                  final codigo = capture.barcodes.firstOrNull?.rawValue;
+                  if (codigo == null) return;
+
+                  if (codigo == _ultimoCodigoLido) {
+                    _leiturasConsecutivas++;
+                  } else {
+                    _ultimoCodigoLido = codigo;
+                    _leiturasConsecutivas = 1;
+                  }
+
+                  if (_leiturasConsecutivas >= _leiturasNecessarias) {
+                    _escaneado = true;
+                    Navigator.pop(context, codigo);
+                  } else {
+                    setState(() {});
+                  }
+                },
+              ),
+              Center(
+                child: Container(
+                  width: _larguraJanela,
+                  height: _alturaJanela,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: _leiturasConsecutivas > 0 ? Colors.amber : AppTheme.primary, width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              if (_leiturasConsecutivas > 0)
+                Positioned(
+                  bottom: 90, left: 0, right: 0,
+                  child: Text(
+                    'Confirmando leitura de "$_ultimoCodigoLido"...',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.amber, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              const Positioned(bottom: 40, left: 0, right: 0, child: Text('Aponte para o código de barras', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14))),
+            ],
+          );
+        },
       ),
     );
   }

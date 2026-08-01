@@ -33,3 +33,7 @@ ios/Pods/
 ios/.symlinks/
 android/.gradle/
 android/local.properties
+android/*.log
+
+# Claude Code (config local, não é código do app)
+.claude/

@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'app_storage.dart';
 import 'config_service.dart';
 
 class ApiClient {
@@ -7,7 +7,6 @@ class ApiClient {
   factory ApiClient() => _instance;
 
   late final Dio dio;
-  final _storage = const FlutterSecureStorage();
   final _config = ConfigService();
 
   ApiClient._internal() {
@@ -32,7 +31,7 @@ class ApiClient {
           print('📤 Requisição: ${options.method} ${options.path}');
 
           // Adiciona token se existir
-          final token = await _storage.read(key: 'access_token');
+          final token = await AppStorage.read('access_token');
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
@@ -49,15 +48,15 @@ class ApiClient {
   }
 
   Future<void> salvarToken(String token) async {
-    await _storage.write(key: 'access_token', value: token);
+    await AppStorage.write('access_token', token);
   }
 
   Future<void> removerToken() async {
-    await _storage.delete(key: 'access_token');
+    await AppStorage.delete('access_token');
   }
 
   Future<bool> temToken() async {
-    final token = await _storage.read(key: 'access_token');
+    final token = await AppStorage.read('access_token');
     return token != null;
   }
 }
