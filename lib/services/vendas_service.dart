@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 import '../models/vendas_models.dart';
 import 'api_client.dart';
@@ -169,5 +170,56 @@ class VendasService {
       throw Exception(msg.toString());
     }
     return PreVenda.fromJson(response.data);
+  }
+
+  /// Devolve um item do condicional — remove o item da pré-venda de verdade
+  /// (o ERP, ao efetivar, considera tudo que ainda existe na pré-venda, não
+  /// um campo de "devolvido"; por isso o item precisa sair de fato).
+  Future<void> devolverItemPreVenda(int preVendaId, int itemId) async {
+    try {
+      await _client.dio.delete('/vendas/pre-vendas/$preVendaId/itens/$itemId');
+    } on DioException catch (e) {
+      final msg = e.response?.data is Map
+          ? (e.response!.data['detail'] ?? 'Erro ao registrar devolução')
+          : 'Erro ao registrar devolução';
+      throw Exception(msg.toString());
+    }
+  }
+
+  /// Desfaz uma devolução, recriando o item na pré-venda (gera um novo
+  /// pk_chave — o item devolvido foi de fato apagado).
+  Future<ItemVenda> restaurarItemPreVenda(int preVendaId, ItemVenda item) async {
+    try {
+      final response = await _client.dio.post(
+        '/vendas/pre-vendas/$preVendaId/itens/restaurar',
+        data: {
+          'produto_id': item.produtoId,
+          'quantidade': item.quantidade,
+          'vr_unitario_bruto': item.vrUnitarioBruto,
+          'vr_desconto_total': item.vrDescontoTotal,
+          'vr_acrescimo_total': item.vrAcrescimoTotal,
+          if (item.vendedorId != null) 'vendedor_id': item.vendedorId,
+        },
+      );
+      return ItemVenda(
+        pkChave: response.data['pk_chave'],
+        produtoId: item.produtoId,
+        produtoNome: item.produtoNome,
+        quantidade: item.quantidade,
+        vrUnitarioBruto: item.vrUnitarioBruto,
+        vrDescontoTotal: item.vrDescontoTotal,
+        vrAcrescimoTotal: item.vrAcrescimoTotal,
+        vrTotalLiquido: item.vrTotalLiquido,
+        itemDevolvido: false,
+        quantidadeDevolvida: 0,
+        vendedorId: item.vendedorId,
+        vendedorNome: item.vendedorNome,
+      );
+    } on DioException catch (e) {
+      final msg = e.response?.data is Map
+          ? (e.response!.data['detail'] ?? 'Erro ao desfazer devolução')
+          : 'Erro ao desfazer devolução';
+      throw Exception(msg.toString());
+    }
   }
 }

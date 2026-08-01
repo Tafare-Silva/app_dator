@@ -6,6 +6,7 @@ import 'configuracoes/configuracoes_screen.dart';
 import 'dashboard/dashboard_vendas_screen.dart';
 import 'pedidos/pedidos_venda_screen.dart';
 import 'pre_vendas/pre_vendas_screen.dart';
+import 'pre_vendas/devolucao_condicional_screen.dart';
 import 'produtos/produtos_screen.dart';
 import 'estatisticas/estatisticas_screen.dart';
 import 'financeiro/contas_pagar_screen.dart';
@@ -169,6 +170,14 @@ class _AppDrawer extends StatelessWidget {
                   children: [
                     _DrawerItem(icone: Icons.receipt_long_outlined, label: 'Pedidos de Venda', selecionado: abaSelecionada == 1, onTap: () => onNavegar(1)),
                     _DrawerItem(icone: Icons.assignment_outlined, label: 'Pré-Vendas', selecionado: abaSelecionada == 2, onTap: () => onNavegar(2)),
+                    _DrawerItem(
+                      icone: Icons.assignment_return_outlined,
+                      label: 'Devolução de Condicional',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(builder: (_) => const DevolucaoCondicionalScreen()));
+                      }
+                    ),
                   ],
                 ),
 
