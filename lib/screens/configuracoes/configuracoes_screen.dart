@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
-import '../../services/config_service.dart';
+import '../../services/app_update_service.dart';
 import '../../services/services.dart';
 
 class ConfiguracoesScreen extends StatefulWidget {
@@ -22,6 +23,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
 
   bool _salvando = false;
   bool _testando = false;
+  bool _atualizando = false;
 
   @override
   void initState() {
@@ -80,6 +82,25 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _verificarAtualizacoes() async {
+    setState(() => _atualizando = true);
+    try {
+      await AppUpdateService.forcarAtualizacao();
+    } catch (_) {
+      setState(() => _atualizando = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível verificar atualizações.'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+    // Em caso de sucesso a página recarrega sozinha, então não precisa
+    // voltar _atualizando para false aqui.
   }
 
   @override
@@ -156,6 +177,32 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
               ),
             ),
           ]),
+          if (kIsWeb) ...[
+            const SizedBox(height: 24),
+            _Secao(titulo: '🔄 Atualização do App', children: [
+              const Text(
+                'Se o app parecer desatualizado (principalmente no iPhone), '
+                'toque no botão abaixo para limpar o cache e buscar a versão mais recente.',
+                style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _atualizando ? null : _verificarAtualizacoes,
+                icon: _atualizando
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.refresh),
+                label: const Text('Verificar atualizações'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                  side: const BorderSide(color: AppTheme.primary),
+                  foregroundColor: AppTheme.primary,
+                ),
+              ),
+            ]),
+          ],
           const SizedBox(height: 32),
           ElevatedButton.icon(
             onPressed: _salvando ? null : _salvar,

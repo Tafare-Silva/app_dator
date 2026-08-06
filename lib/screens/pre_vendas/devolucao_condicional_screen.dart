@@ -342,7 +342,7 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
                       Expanded(
                         child: GestureDetector(
                           onTap: _staged.isEmpty ? null : _abrirModalDevolvidos,
-                          child: _EstatChip(rotulo: 'Devolvendo (toque p/ ver)', valor: _totalDevolvendo, cor: Colors.red),
+                          child: _EstatChip(rotulo: 'Devolvendo', valor: _totalDevolvendo, cor: Colors.red, tocavel: _staged.isNotEmpty),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -393,6 +393,9 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
           ),
         ],
       ),
+      // Empilhados (não lado a lado) — em telas estreitas, dois botões numa
+      // Row espremiam o texto e quebravam feio. Cada botão em largura total
+      // evita esse problema independente do tamanho da tela.
       bottomNavigationBar: _staged.isEmpty
           ? null
           : SafeArea(
@@ -402,18 +405,24 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
                   color: Colors.white,
                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, -2))],
                 ),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
+                    SizedBox(
+                      width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: _abrirModalDevolvidos,
-                        icon: const Icon(Icons.visibility_outlined),
-                        label: Text('Conferir (${_staged.length})'),
+                        icon: const Icon(Icons.visibility_outlined, size: 18),
+                        label: Text(
+                          _staged.length == 1 ? 'Conferir 1 item' : 'Conferir ${_staged.length} itens',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 2,
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: _confirmando ? null : _confirmarDevolucao,
                         icon: _confirmando
@@ -422,8 +431,16 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
                                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                               )
                             : const Icon(Icons.check),
-                        label: Text(_confirmando ? 'Confirmando...' : 'Confirmar Devolução'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                        label: Text(
+                          _confirmando ? 'Confirmando...' : 'Confirmar Devolução (${_staged.length})',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 46),
+                        ),
                       ),
                     ),
                   ],
@@ -530,22 +547,40 @@ class _EstatChip extends StatelessWidget {
   final String rotulo;
   final int valor;
   final Color cor;
+  final bool tocavel;
 
-  const _EstatChip({required this.rotulo, required this.valor, required this.cor});
+  const _EstatChip({required this.rotulo, required this.valor, required this.cor, this.tocavel = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       decoration: BoxDecoration(
         color: cor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: cor.withValues(alpha: 0.25)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text('$valor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cor)),
-          Text(rotulo, style: TextStyle(fontSize: 10, color: cor)),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('$valor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cor)),
+              if (tocavel) ...[
+                const SizedBox(width: 3),
+                Icon(Icons.visibility_outlined, size: 13, color: cor),
+              ],
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            rotulo,
+            style: TextStyle(fontSize: 10, color: cor),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
