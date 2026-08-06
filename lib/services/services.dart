@@ -1,4 +1,5 @@
 import 'api_client.dart';
+import 'app_storage.dart';
 import '../models/models.dart';
 export 'config_service.dart';
 
@@ -7,15 +8,24 @@ export 'config_service.dart';
 class AuthService {
   final _client = ApiClient();
 
-  Future<TokenResponse> login(String login, String senha) async {
+  Future<TokenResponse> login(String login, String senha, String empresa) async {
     final response = await _client.dio.post('/auth/login', data: {
       'usuario_login': login,
       'senha': senha,
+      'empresa': empresa,
     });
     final token = TokenResponse.fromJson(response.data);
     await _client.salvarToken(token.accessToken);
+    // Guarda a loja escolhida pra pré-selecionar no próximo login -- o
+    // logout não apaga isso de propósito.
+    await AppStorage.write('empresa_atual', token.empresa);
+    await AppStorage.write('empresa_nome', token.empresaNome);
     return token;
   }
+
+  /// Última loja escolhida (pra pré-selecionar na tela de login), ou null
+  /// se o usuário nunca logou neste aparelho.
+  Future<String?> empresaSalva() => AppStorage.read('empresa_atual');
 
   Future<void> logout() async {
     await _client.removerToken();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'auth_provider.dart';
 import '../../core/app_theme.dart';
+import '../../core/empresas.dart';
 import '../configuracoes/configuracoes_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,6 +19,22 @@ class _LoginScreenState extends State<LoginScreen> {
   final _senhaCtrl = TextEditingController();
   final _senhaFocus = FocusNode();
   bool _senhaVisivel = false;
+  Empresa _empresaSelecionada = empresasDisponiveis.first;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarUltimaEmpresa();
+  }
+
+  Future<void> _carregarUltimaEmpresa() async {
+    final salva = await context.read<AuthProvider>().empresaSalva();
+    if (salva == null || !mounted) return;
+    final encontrada = empresasDisponiveis.where((e) => e.id == salva);
+    if (encontrada.isNotEmpty) {
+      setState(() => _empresaSelecionada = encontrada.first);
+    }
+  }
 
   @override
   void dispose() {
@@ -34,6 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final ok = await auth.login(
       _loginCtrl.text.trim().toUpperCase(),
       _senhaCtrl.text,
+      _empresaSelecionada.id,
     );
     if (ok && mounted) widget.onLoginSucesso();
   }
@@ -131,7 +149,35 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: AppTheme.textDark,
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Loja',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: empresasDisponiveis.map((empresa) {
+                              final selecionada = empresa.id == _empresaSelecionada.id;
+                              return ChoiceChip(
+                                label: Text(empresa.nome),
+                                selected: selecionada,
+                                onSelected: (_) =>
+                                    setState(() => _empresaSelecionada = empresa),
+                                selectedColor: AppTheme.primary,
+                                labelStyle: TextStyle(
+                                  color: selecionada ? Colors.white : AppTheme.textDark,
+                                  fontWeight: selecionada ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 20),
                           TextFormField(
                             controller: _loginCtrl,
                             decoration: const InputDecoration(

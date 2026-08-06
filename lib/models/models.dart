@@ -4,17 +4,23 @@ class TokenResponse {
   final String accessToken;
   final String nomeUsuario;
   final String? grupo;
+  final String empresa;
+  final String empresaNome;
 
   TokenResponse({
     required this.accessToken,
     required this.nomeUsuario,
     this.grupo,
+    required this.empresa,
+    required this.empresaNome,
   });
 
   factory TokenResponse.fromJson(Map<String, dynamic> json) => TokenResponse(
         accessToken: json['access_token'],
         nomeUsuario: json['nome_usuario'],
         grupo: json['grupo'],
+        empresa: json['empresa'],
+        empresaNome: json['empresa_nome'],
       );
 }
 

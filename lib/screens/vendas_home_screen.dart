@@ -117,6 +117,8 @@ class _AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final empresaNome = Provider.of<AuthProvider>(context).empresaNome;
+
     return Drawer(
       child: Column(
         children: [
@@ -144,6 +146,21 @@ class _AppDrawer extends StatelessWidget {
                               fontWeight: FontWeight.bold),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis),
+                      if (empresaNome != null) ...[
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(Icons.storefront_outlined, color: Colors.white70, size: 13),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(empresaNome,
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
