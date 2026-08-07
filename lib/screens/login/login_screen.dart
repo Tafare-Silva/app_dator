@@ -149,35 +149,30 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: AppTheme.textDark,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Loja',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.textMuted,
+                          const SizedBox(height: 24),
+                          DropdownButtonFormField<Empresa>(
+                            // Recria o campo quando a loja salva é carregada
+                            // de forma assíncrona (initialValue só é lido na
+                            // primeira construção do widget).
+                            key: ValueKey(_empresaSelecionada.id),
+                            initialValue: _empresaSelecionada,
+                            decoration: const InputDecoration(
+                              labelText: 'Loja',
+                              prefixIcon: Icon(Icons.storefront_outlined),
                             ),
+                            items: empresasDisponiveis
+                                .map((empresa) => DropdownMenuItem(
+                                      value: empresa,
+                                      child: Text(empresa.nome),
+                                    ))
+                                .toList(),
+                            onChanged: (empresa) {
+                              if (empresa != null) {
+                                setState(() => _empresaSelecionada = empresa);
+                              }
+                            },
                           ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: empresasDisponiveis.map((empresa) {
-                              final selecionada = empresa.id == _empresaSelecionada.id;
-                              return ChoiceChip(
-                                label: Text(empresa.nome),
-                                selected: selecionada,
-                                onSelected: (_) =>
-                                    setState(() => _empresaSelecionada = empresa),
-                                selectedColor: AppTheme.primary,
-                                labelStyle: TextStyle(
-                                  color: selecionada ? Colors.white : AppTheme.textDark,
-                                  fontWeight: selecionada ? FontWeight.bold : FontWeight.normal,
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 16),
                           TextFormField(
                             controller: _loginCtrl,
                             decoration: const InputDecoration(
