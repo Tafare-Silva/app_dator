@@ -12,16 +12,23 @@ class ConfigService {
   static const _keyNomeEmpresa = 'nome_empresa';
 
   Future<String> getServidorIp() async {
-    return await AppStorage.read(_keyServidorIp) ?? '159.65.167.110';
+    final ip = await AppStorage.read(_keyServidorIp) ?? '159.65.167.110';
+    // ✅ migra automaticamente quem ainda tiver o IP direto salvo -- agora
+    // o acesso é pelo domínio com HTTPS (ver getBaseUrl)
+    if (ip == '159.65.167.110') {
+      await AppStorage.write(_keyServidorIp, 'datorapp.blanjos.com.br');
+      return 'datorapp.blanjos.com.br';
+    }
+    return ip;
   }
 
   Future<int> getServidorPorta() async {
     final v = await AppStorage.read(_keyServidorPorta);
-    final porta = int.tryParse(v ?? '') ?? 8001; // ✅ padrão corrigido para 8001
-    // ✅ migra automaticamente quem ainda tiver 8000 salvo
-    if (porta == 8000) {
-      await AppStorage.write(_keyServidorPorta, '8001');
-      return 8001;
+    final porta = int.tryParse(v ?? '') ?? 443; // ✅ padrão agora é HTTPS (443)
+    // ✅ migra automaticamente quem ainda tiver a porta antiga (HTTP) salva
+    if (porta == 8000 || porta == 8001) {
+      await AppStorage.write(_keyServidorPorta, '443');
+      return 443;
     }
     return porta;
   }
@@ -56,6 +63,11 @@ class ConfigService {
   Future<String> getBaseUrl() async {
     final ip = await getServidorIp();
     final porta = await getServidorPorta();
+    // Porta 443 = HTTPS (produção, via domínio) -- qualquer outra porta
+    // continua HTTP (útil pra testar contra um servidor local/LAN sem TLS).
+    if (porta == 443) {
+      return 'https://$ip/api/v1';
+    }
     return 'http://$ip:$porta/api/v1';
   }
 }

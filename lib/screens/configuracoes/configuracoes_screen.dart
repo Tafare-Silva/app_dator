@@ -133,15 +133,15 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
           _Secao(titulo: '🖥️ Servidor Backend', children: [
             _Campo(
               controller: _servidorIpCtrl,
-              label: 'IP do Servidor',
-              hint: 'Ex: 192.168.1.100',
-              teclado: TextInputType.number,
+              label: 'Endereço do Servidor',
+              hint: 'Ex: datorapp.blanjos.com.br ou 192.168.1.100',
+              teclado: TextInputType.url,
             ),
             const SizedBox(height: 12),
             _Campo(
               controller: _servidorPortaCtrl,
-              label: 'Porta',
-              hint: '8000',
+              label: 'Porta (443 = HTTPS)',
+              hint: '443',
               teclado: TextInputType.number,
             ),
           ]),
