@@ -80,9 +80,16 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
       final detalhes = await Future.wait(
         abertos.map((pv) => _vendasService.getPreVendaDetalhe(pv.pkChave)),
       );
+      // Condicional sem nenhum item (já totalmente devolvido antes, por
+      // exemplo) não tem nada pra devolver -- não faz sentido aparecer aqui.
+      final comItens = detalhes.where((g) => g.itens.isNotEmpty).toList();
+      if (comItens.isEmpty) {
+        setState(() => _erro = 'Nenhum condicional em aberto para ${cliente.nome}.');
+        return;
+      }
       setState(() {
-        _resultados = detalhes;
-        _totalOriginal = detalhes.fold(0, (s, g) => s + g.itens.length);
+        _resultados = comItens;
+        _totalOriginal = comItens.fold(0, (s, g) => s + g.itens.length);
       });
     } catch (_) {
       setState(() => _erro = 'Erro ao buscar condicionais do cliente.');
@@ -551,7 +558,11 @@ class _ModalItensDevolvidosState extends State<_ModalItensDevolvidos> {
       maxChildSize: 0.9,
       expand: false,
       builder: (context, scrollController) {
-        return Container(
+        // SafeArea evita que o botão "Fechar" fique embaixo da barra de
+        // gestos do Android (nem todo aparelho reserva a mesma altura).
+        return SafeArea(
+          top: false,
+          child: Container(
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -633,6 +644,7 @@ class _ModalItensDevolvidosState extends State<_ModalItensDevolvidos> {
                 child: const Text('Fechar'),
               ),
             ],
+          ),
           ),
         );
       },

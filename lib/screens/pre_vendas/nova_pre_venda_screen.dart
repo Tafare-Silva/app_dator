@@ -379,8 +379,12 @@ class _NovaPreVendaScreenState extends State<NovaPreVendaScreen> {
             ),
           ),
           // ── Rodapé ───────────────────────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+          // SafeArea evita que o botão fique embaixo da barra de gestos do
+          // Android (nem todo aparelho reserva a mesma altura pra ela).
+          SafeArea(
+            top: false,
+            child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, -2))],
@@ -406,6 +410,7 @@ class _NovaPreVendaScreenState extends State<NovaPreVendaScreen> {
                   ),
                 ),
               ],
+            ),
             ),
           ),
         ],
