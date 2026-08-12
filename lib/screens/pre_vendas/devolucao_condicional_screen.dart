@@ -9,7 +9,9 @@ import '../../services/cliente_service.dart';
 import '../../services/vendas_service.dart';
 
 class DevolucaoCondicionalScreen extends StatefulWidget {
-  const DevolucaoCondicionalScreen({super.key});
+  final VoidCallback? onVoltarDashboard;
+  final VoidCallback? onAbrirMenu;
+  const DevolucaoCondicionalScreen({super.key, this.onVoltarDashboard, this.onAbrirMenu});
 
   @override
   State<DevolucaoCondicionalScreen> createState() => _DevolucaoCondicionalScreenState();
@@ -20,11 +22,7 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
   final _clienteService = ClienteService();
   final _fmt = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   final _fmtData = DateFormat('dd/MM/yyyy');
-  final _numeroCtrl = TextEditingController();
   final _codigoCtrl = TextEditingController();
-
-  // 'numero' ou 'cliente'
-  String _modoBusca = 'numero';
 
   bool _carregando = false;
   String? _erro;
@@ -42,7 +40,6 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
 
   @override
   void dispose() {
-    _numeroCtrl.dispose();
     _codigoCtrl.dispose();
     super.dispose();
   }
@@ -51,36 +48,6 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
   int get _totalDevolvendo => _staged.length;
 
   // ── Busca ─────────────────────────────────────────────────────────────────────
-
-  Future<void> _buscarPorNumero() async {
-    final id = int.tryParse(_numeroCtrl.text.trim());
-    if (id == null) {
-      setState(() => _erro = 'Digite um número de condicional válido.');
-      return;
-    }
-    setState(() {
-      _carregando = true;
-      _erro = null;
-      _resultados = [];
-      _totalOriginal = 0;
-      _staged.clear();
-    });
-    try {
-      final detalhe = await _vendasService.getPreVendaDetalhe(id);
-      if (detalhe.efetivada) {
-        setState(() => _erro = 'O condicional #$id já foi efetivado — não é possível devolver itens.');
-      } else {
-        setState(() {
-          _resultados = [detalhe];
-          _totalOriginal = detalhe.itens.length;
-        });
-      }
-    } catch (_) {
-      setState(() => _erro = 'Condicional #$id não encontrado.');
-    } finally {
-      if (mounted) setState(() => _carregando = false);
-    }
-  }
 
   Future<void> _selecionarCliente() async {
     final cliente = await showDialog<Cliente>(
@@ -230,6 +197,11 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text('Devolução de Condicional'),
+        leading: widget.onVoltarDashboard != null || widget.onAbrirMenu != null
+            ? (widget.onVoltarDashboard != null
+                ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: widget.onVoltarDashboard)
+                : IconButton(icon: const Icon(Icons.menu), onPressed: widget.onAbrirMenu))
+            : null,
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner),
@@ -245,72 +217,31 @@ class _DevolucaoCondicionalScreenState extends State<DevolucaoCondicionalScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _SegmentoBusca(
-                        label: 'Por Número',
-                        icone: Icons.tag,
-                        selecionado: _modoBusca == 'numero',
-                        onTap: () => setState(() => _modoBusca = 'numero'),
-                      ),
+                InkWell(
+                  onTap: _selecionarCliente,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _SegmentoBusca(
-                        label: 'Por Cliente',
-                        icone: Icons.person_outline,
-                        selecionado: _modoBusca == 'cliente',
-                        onTap: () => setState(() => _modoBusca = 'cliente'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (_modoBusca == 'numero')
-                  TextField(
-                    controller: _numeroCtrl,
-                    keyboardType: TextInputType.number,
-                    textInputAction: TextInputAction.search,
-                    decoration: InputDecoration(
-                      labelText: 'Número do condicional',
-                      hintText: 'Ex: 82372',
-                      prefixIcon: const Icon(Icons.numbers),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.search),
-                        onPressed: _buscarPorNumero,
-                      ),
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    onSubmitted: (_) => _buscarPorNumero(),
-                  )
-                else
-                  InkWell(
-                    onTap: _selecionarCliente,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.person_outline, size: 18, color: AppTheme.primary),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _clienteSelecionado?.nome ?? 'Selecionar cliente...',
-                              style: TextStyle(
-                                color: _clienteSelecionado != null ? AppTheme.textDark : AppTheme.textMuted,
-                              ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_outline, size: 18, color: AppTheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _clienteSelecionado?.nome ?? 'Selecionar cliente...',
+                            style: TextStyle(
+                              color: _clienteSelecionado != null ? AppTheme.textDark : AppTheme.textMuted,
                             ),
                           ),
-                          const Icon(Icons.search, size: 16, color: AppTheme.primary),
-                        ],
-                      ),
+                        ),
+                        const Icon(Icons.search, size: 16, color: AppTheme.primary),
+                      ],
                     ),
                   ),
+                ),
                 if (_resultados.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Row(
@@ -705,43 +636,6 @@ class _ModalItensDevolvidosState extends State<_ModalItensDevolvidos> {
           ),
         );
       },
-    );
-  }
-}
-
-// ── Toggle de modo de busca ──────────────────────────────────────────────────────
-
-class _SegmentoBusca extends StatelessWidget {
-  final String label;
-  final IconData icone;
-  final bool selecionado;
-  final VoidCallback onTap;
-
-  const _SegmentoBusca({required this.label, required this.icone, required this.selecionado, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: selecionado ? AppTheme.primary : Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: selecionado ? AppTheme.primary : Colors.grey[300]!),
-        ),
-        child: Column(
-          children: [
-            Icon(icone, size: 18, color: selecionado ? Colors.white : AppTheme.textMuted),
-            const SizedBox(height: 4),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: selecionado ? Colors.white : AppTheme.textMuted)),
-          ],
-        ),
-      ),
     );
   }
 }

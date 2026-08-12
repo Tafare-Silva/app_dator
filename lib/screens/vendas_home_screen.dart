@@ -47,10 +47,10 @@ class _VendasHomeScreenState extends State<VendasHomeScreen> {
 
     final telas = [
       DashboardVendasScreen(onAbrirMenu: _abrirDrawer),
-      PedidosVendaScreen(onVoltarDashboard: _irParaDashboard, onAbrirMenu: _abrirDrawer),
+      DevolucaoCondicionalScreen(onVoltarDashboard: _irParaDashboard, onAbrirMenu: _abrirDrawer),
       PreVendasScreen(onVoltarDashboard: _irParaDashboard, onAbrirMenu: _abrirDrawer),
       ProdutosScreen(onVoltarDashboard: _irParaDashboard, onAbrirMenu: _abrirDrawer),
-      
+
     ];
 
     return Scaffold(
@@ -78,14 +78,14 @@ class _VendasHomeScreenState extends State<VendasHomeScreen> {
             label: 'Dashboard',
           ),
           const NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long, color: AppTheme.primary),
-            label: 'Pedidos',
+            icon: Icon(Icons.assignment_return_outlined),
+            selectedIcon: Icon(Icons.assignment_return, color: AppTheme.primary),
+            label: 'Devolução',
           ),
           const NavigationDestination(
             icon: Icon(Icons.assignment_outlined),
             selectedIcon: Icon(Icons.assignment, color: AppTheme.primary),
-            label: 'Pré-Vendas',
+            label: 'Condicional',
           ),
           const NavigationDestination(
             icon: Icon(Icons.inventory_2_outlined),
@@ -185,14 +185,23 @@ class _AppDrawer extends StatelessWidget {
                   title: const Text('Movimentações', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   initiallyExpanded: abaSelecionada == 1 || abaSelecionada == 2,
                   children: [
-                    _DrawerItem(icone: Icons.receipt_long_outlined, label: 'Pedidos de Venda', selecionado: abaSelecionada == 1, onTap: () => onNavegar(1)),
-                    _DrawerItem(icone: Icons.assignment_outlined, label: 'Pré-Vendas', selecionado: abaSelecionada == 2, onTap: () => onNavegar(2)),
                     _DrawerItem(
                       icone: Icons.assignment_return_outlined,
                       label: 'Devolução de Condicional',
+                      selecionado: abaSelecionada == 1,
+                      onTap: () => onNavegar(1),
+                    ),
+                    _DrawerItem(icone: Icons.assignment_outlined, label: 'Pré-Vendas', selecionado: abaSelecionada == 2, onTap: () => onNavegar(2)),
+                    _DrawerItem(
+                      icone: Icons.receipt_long_outlined,
+                      label: 'Pedidos de Venda',
                       onTap: () {
                         Navigator.pop(context);
-                        Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(builder: (_) => const DevolucaoCondicionalScreen()));
+                        Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
+                          builder: (_) => PedidosVendaScreen(
+                            onVoltarDashboard: () => Navigator.of(context, rootNavigator: true).pop(),
+                          ),
+                        ));
                       }
                     ),
                   ],
