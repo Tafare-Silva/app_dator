@@ -124,7 +124,9 @@ class _NovaPreVendaScreenState extends State<NovaPreVendaScreen> {
 
   void _adicionarOuIncrementar(ProdutoResumo produto) {
     setState(() {
-      _itens.add(_ItemForm(
+      // Insere no topo -- o último produto lido/adicionado fica sempre
+      // visível no início da lista, sem precisar rolar até o fim.
+      _itens.insert(0, _ItemForm(
         produto: produto,
         vrUnitario: produto.precoVenda,
         vendedorId: _vendedorCabecalho?.pkChave,
