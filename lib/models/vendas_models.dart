@@ -114,6 +114,61 @@ class DashboardVendas {
       );
 }
 
+// ── Dashboard consolidado (todas as lojas) ──────────────────────────────────────
+
+class DashboardPorLoja {
+  final String empresa;
+  final String empresaNome;
+  final String? erro;
+  final DashboardVendas dados;
+
+  DashboardPorLoja({
+    required this.empresa,
+    required this.empresaNome,
+    this.erro,
+    required this.dados,
+  });
+
+  factory DashboardPorLoja.fromJson(Map<String, dynamic> json) => DashboardPorLoja(
+        empresa: json['empresa'],
+        empresaNome: json['empresa_nome'] ?? json['empresa'],
+        erro: json['erro'],
+        dados: DashboardVendas.fromJson(json),
+      );
+}
+
+class DashboardConsolidado {
+  final List<DashboardPorLoja> porLoja;
+  final double totalVendas;
+  final int quantidadePedidos;
+  final double totalVendasHoje;
+  final int quantidadePedidosHoje;
+  final DateTime dataInicio;
+  final DateTime dataFim;
+
+  DashboardConsolidado({
+    required this.porLoja,
+    required this.totalVendas,
+    required this.quantidadePedidos,
+    required this.totalVendasHoje,
+    required this.quantidadePedidosHoje,
+    required this.dataInicio,
+    required this.dataFim,
+  });
+
+  factory DashboardConsolidado.fromJson(Map<String, dynamic> json) => DashboardConsolidado(
+        porLoja: (json['por_loja'] as List)
+            .map((l) => DashboardPorLoja.fromJson(l))
+            .toList(),
+        totalVendas: double.parse(json['total_vendas'].toString()),
+        quantidadePedidos: json['quantidade_pedidos'],
+        totalVendasHoje: double.parse(json['total_vendas_hoje'].toString()),
+        quantidadePedidosHoje: json['quantidade_pedidos_hoje'],
+        dataInicio: DateTime.parse(json['data_inicio']),
+        dataFim: DateTime.parse(json['data_fim']),
+      );
+}
+
 // ── Pedido de Venda ───────────────────────────────────────────────────────────
 
 class ItemVenda {

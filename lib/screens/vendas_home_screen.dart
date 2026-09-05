@@ -4,6 +4,7 @@ import '../../core/app_theme.dart';
 import 'login/auth_provider.dart';
 import 'configuracoes/configuracoes_screen.dart';
 import 'dashboard/dashboard_vendas_screen.dart';
+import 'dashboard/dashboard_consolidado_screen.dart';
 import 'pedidos/pedidos_venda_screen.dart';
 import 'pre_vendas/pre_vendas_screen.dart';
 import 'pre_vendas/devolucao_condicional_screen.dart';
@@ -261,11 +262,20 @@ class _AppDrawer extends StatelessWidget {
                     _DrawerItem(icone: Icons.inventory_2_outlined, label: 'Produtos', selecionado: abaSelecionada == 3, onTap: () => onNavegar(3)),
                     if (ehAdmin)
                       _DrawerItem(
-                        icone: Icons.bar_chart_outlined, 
-                        label: 'Estatísticas', 
+                        icone: Icons.bar_chart_outlined,
+                        label: 'Estatísticas',
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(context, MaterialPageRoute(builder: (_) => const EstatisticasScreen()));
+                        }
+                      ),
+                    if (ehAdmin)
+                      _DrawerItem(
+                        icone: Icons.store_outlined,
+                        label: 'Dashboard Consolidado',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardConsolidadoScreen()));
                         }
                       ),
                   ],

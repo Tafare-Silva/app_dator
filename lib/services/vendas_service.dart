@@ -38,6 +38,25 @@ class VendasService {
     return DashboardVendas.fromJson(response.data);
   }
 
+  /// Soma o dashboard das 3 lojas -- só admin (backend exige via get_admin).
+  Future<DashboardConsolidado> getDashboardConsolidado({
+    DateTime? dataInicio,
+    DateTime? dataFim,
+  }) async {
+    final hoje = DateTime.now();
+    final inicio = dataInicio ?? DateTime(hoje.year, hoje.month, 1);
+    final fim = dataFim ?? hoje;
+
+    final response = await _client.dio.get(
+      '/vendas/dashboard-consolidado',
+      queryParameters: {
+        'data_inicio': _dateFormat.format(inicio),
+        'data_fim': _dateFormat.format(fim),
+      },
+    );
+    return DashboardConsolidado.fromJson(response.data);
+  }
+
   // ── Pedidos ─────────────────────────────────────────────────────────────────
 
   /// [OTIMIZAÇÃO 1]
