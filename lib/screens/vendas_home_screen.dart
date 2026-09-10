@@ -174,12 +174,21 @@ class _AppDrawer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               children: [
                 _DrawerItem(
-                  icone: Icons.dashboard_outlined, 
-                  label: 'Dashboard', 
-                  selecionado: abaSelecionada == 0, 
+                  icone: Icons.dashboard_outlined,
+                  label: 'Dashboard',
+                  selecionado: abaSelecionada == 0,
                   onTap: () => onNavegar(0)
                 ),
-                
+                if (ehAdmin)
+                  _DrawerItem(
+                    icone: Icons.store_outlined,
+                    label: 'Dashboard Consolidado',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardConsolidadoScreen()));
+                    }
+                  ),
+
                 // --- SESSÃO: MOVIMENTAÇÕES ---
                 ExpansionTile(
                   leading: const Icon(Icons.swap_horiz, color: AppTheme.primary),
@@ -267,15 +276,6 @@ class _AppDrawer extends StatelessWidget {
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(context, MaterialPageRoute(builder: (_) => const EstatisticasScreen()));
-                        }
-                      ),
-                    if (ehAdmin)
-                      _DrawerItem(
-                        icone: Icons.store_outlined,
-                        label: 'Dashboard Consolidado',
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardConsolidadoScreen()));
                         }
                       ),
                   ],

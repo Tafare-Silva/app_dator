@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../../models/vendas_models.dart';
 import '../../../services/vendas_service.dart';
 import '../../../core/app_theme.dart';
+import '../login/auth_provider.dart';
+import 'dashboard_consolidado_screen.dart';
 
 class DashboardVendasScreen extends StatefulWidget {
   final VoidCallback? onAbrirMenu;
@@ -78,6 +81,15 @@ class _DashboardVendasScreenState extends State<DashboardVendasScreen> {
         onPressed: widget.onAbrirMenu, // ✅ usa o callback do pai
       ),
         actions: [
+          if ((Provider.of<AuthProvider>(context).grupo ?? '').toUpperCase().contains('ADMINISTRADOR'))
+            IconButton(
+              icon: const Icon(Icons.store_outlined),
+              tooltip: 'Dashboard Consolidado (todas as lojas)',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DashboardConsolidadoScreen()),
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.date_range),
             tooltip: 'Selecionar período',
