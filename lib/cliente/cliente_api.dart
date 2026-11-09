@@ -60,7 +60,11 @@ class ClienteApi {
   String loja = '';
   Future<String>? _base;
 
-  Future<String> baseUrl() => _base ??= ConfigService().getBaseUrl();
+  String? _baseResolvida;
+  Future<String> baseUrl() => _base ??= ConfigService().getBaseUrl().then((b) => _baseResolvida = b);
+
+  /// Só vale depois de baseUrl() ter sido chamado (o app faz isso ao iniciar).
+  String fotoUrlSync(int id) => '${_baseResolvida ?? ''}/cliente/catalogo/$id/foto?loja=$loja';
 
   Future<Dio> _dio() async => Dio(BaseOptions(
         baseUrl: await baseUrl(),

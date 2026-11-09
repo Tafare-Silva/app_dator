@@ -25,6 +25,7 @@ class ClienteState extends ChangeNotifier {
 
   Future<void> iniciar() async {
     api.loja = await AppStorage.read(_keyLoja) ?? '';
+    await api.baseUrl();
     carregado = true;
     notifyListeners();
   }
